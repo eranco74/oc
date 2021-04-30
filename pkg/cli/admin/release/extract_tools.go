@@ -37,8 +37,10 @@ import (
 // extractTarget describes how a file in the release image can be extracted to disk.
 type extractTarget struct {
 	OS       string
+	Arch     string
 	Command  string
 	Optional bool
+	NewArch  bool
 
 	InjectReleaseImage   bool
 	InjectReleaseVersion bool
@@ -135,6 +137,9 @@ var (
 	OpenShift is licensed under the Apache Public License 2.0. The source code for this
 	program is [located on github](https://github.com/openshift/origin).
 	`)
+
+	// indicates that the architecture of the binary matches the release payload
+	targetReleaseArch = "release-arch"
 )
 
 // extractTools extracts specific commands out of images referenced by the release image.
@@ -146,6 +151,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	availableTargets := []extractTarget{
 		{
 			OS:      "darwin",
+			Arch:    "amd64",
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli-artifacts", From: "usr/share/openshift/mac/oc"},
 
@@ -156,6 +162,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		},
 		{
 			OS:      "linux",
+			Arch:    targetReleaseArch,
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli", From: "usr/bin/oc"},
 
@@ -165,7 +172,19 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			ArchiveFormat:        "openshift-client-linux-%s.tar.gz",
 		},
 		{
+			OS:      "linux",
+			Arch:    "amd64",
+			Command: "oc",
+			Mapping: extract.Mapping{Image: "cli-artifacts", From: "usr/share/openshift/linux_amd64/oc"},
+
+			LinkTo:               []string{"kubectl"},
+			Readme:               readmeCLIUnix,
+			InjectReleaseVersion: true,
+			ArchiveFormat:        "openshift-client-linux-amd64-%s.tar.gz",
+		},
+		{
 			OS:      "windows",
+			Arch:    "amd64",
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli-artifacts", From: "usr/share/openshift/windows/oc.exe"},
 
@@ -176,6 +195,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		},
 		{
 			OS:      "darwin",
+			Arch:    "amd64",
 			Command: "openshift-install",
 			Mapping: extract.Mapping{Image: "installer-artifacts", From: "usr/share/openshift/mac/openshift-install"},
 
@@ -186,6 +206,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		},
 		{
 			OS:      "linux",
+			Arch:    targetReleaseArch,
 			Command: "openshift-install",
 			Mapping: extract.Mapping{Image: "installer", From: "usr/bin/openshift-install"},
 
@@ -195,7 +216,20 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			ArchiveFormat:        "openshift-install-linux-%s.tar.gz",
 		},
 		{
+			OS:      "linux",
+			Arch:    "amd64",
+			Command: "openshift-install",
+			NewArch: true,
+			Mapping: extract.Mapping{Image: "installer-artifacts", From: "usr/share/openshift/linux_amd64/openshift-install"},
+
+			Readme:               readmeInstallUnix,
+			InjectReleaseImage:   true,
+			InjectReleaseVersion: true,
+			ArchiveFormat:        "openshift-install-linux-amd64-%s.tar.gz",
+		},
+		{
 			OS:       "linux",
+			Arch:     targetReleaseArch,
 			Command:  "openshift-baremetal-install",
 			Optional: true,
 			Mapping:  extract.Mapping{Image: "baremetal-installer", From: "usr/bin/openshift-install"},
@@ -207,9 +241,15 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		},
 	}
 
+	currentArch := runtime.GOARCH
 	currentOS := runtime.GOOS
 	if len(o.CommandOperatingSystem) > 0 {
 		currentOS = o.CommandOperatingSystem
+		if currentOS == "*" {
+			currentArch = "*"
+		} else {
+			currentArch = "amd64"
+		}
 	}
 	if currentOS == "mac" {
 		currentOS = "darwin"
@@ -300,6 +340,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	if err != nil {
 		return err
 	}
+	releaseArch := release.Config.Architecture
 	releaseName := release.PreferredName()
 	refExact := release.ImageRef
 	refExact.Ref.Tag = ""
@@ -314,8 +355,18 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			klog.V(2).Infof("Skipping %s, does not match current OS %s", target.ArchiveFormat, target.OS)
 			continue
 		}
+		if currentArch != "*" && target.Arch != currentArch {
+			if currentArch != releaseArch || target.Arch != targetReleaseArch {
+				klog.V(2).Infof("Skipping %s, does not match current architecture %s", target.ArchiveFormat, target.Arch)
+				continue
+			}
+		}
+		if target.OS == "linux" && target.Arch == releaseArch {
+			klog.V(2).Infof("Skipping duplicate %s", target.ArchiveFormat)
+			continue
+		}
 		spec, err := findImageSpec(release.References, target.Mapping.Image, o.From)
-		if err != nil {
+		if err != nil && !target.NewArch {
 			missing.Insert(target.Mapping.Image)
 			continue
 		}
@@ -332,7 +383,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			target.Mapping.To = filepath.Join(dir, target.Mapping.Name)
 		} else {
 			target.Mapping.To = filepath.Join(dir, target.Command)
-			target.Mapping.Name = fmt.Sprintf("%s-%s", target.OS, target.Command)
+			target.Mapping.Name = fmt.Sprintf("%s-%s-%s", target.OS, target.Arch, target.Command)
 		}
 		validTargets = append(validTargets, target)
 	}
@@ -612,13 +663,18 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	if len(targetsByName) > 0 {
 		var missing []string
 		for _, target := range targetsByName {
+			if target.NewArch {
+				continue
+			}
 			missing = append(missing, target.Mapping.From)
 		}
 		sort.Strings(missing)
 		if len(missing) == 1 {
 			return fmt.Errorf("image did not contain %s", missing[0])
 		}
-		return fmt.Errorf("unable to find multiple files: %s", strings.Join(missing, ", "))
+		if len(missing) > 1 {
+			return fmt.Errorf("unable to find multiple files: %s", strings.Join(missing, ", "))
+		}
 	}
 
 	return nil
