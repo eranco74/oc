@@ -74,7 +74,7 @@ replace (
 	// temporary pins to latest commit from soltysh/k8s-1.21 branches
 	github.com/openshift/api => github.com/soltysh/api v0.0.0-20210329125043-97dfec49c179
 	github.com/openshift/client-go => github.com/soltysh/client-go v0.0.0-20210329131047-e53d4b5c79d3
-	github.com/openshift/library-go => /home/somalley/code/gowork/src/github.com/openshift/library-go
+	github.com/openshift/library-go => github.com/eranco74/library-go 311d3b965a3aaded8b16d9262344e63791c9a5b7
 
 	// temporary pins to latest commit from oc-4.8-kubernetes-1.21.0-beta.1 branches
 	k8s.io/apimachinery => github.com/openshift/kubernetes-apimachinery v0.0.0-20210318140035-c39220d4515a
