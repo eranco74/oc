@@ -35,9 +35,9 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/openshift/api v0.0.0-20210331193751-3acddb19d360
-	github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
-	github.com/openshift/client-go v0.0.0-20210331195552-cf6c2669e01f
+	github.com/openshift/api v0.0.0-20210521075222-e273a339932a
+	github.com/openshift/build-machinery-go v0.0.0-20210423112049-9415d7ebd33e
+	github.com/openshift/client-go v0.0.0-20210521082421-73d9475a9142
 	github.com/openshift/library-go v0.0.0-20210219155623-0260bfd7946b
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
@@ -56,12 +56,12 @@ require (
 	google.golang.org/grpc v1.35.0 // indirect
 	gopkg.in/ldap.v2 v2.5.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.21.0-rc.0
-	k8s.io/apimachinery v0.21.0-rc.0
-	k8s.io/apiserver v0.21.0-rc.0
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
+	k8s.io/apiserver v0.21.1
 	k8s.io/cli-runtime v0.21.0-beta.1
-	k8s.io/client-go v0.21.0-rc.0
-	k8s.io/component-base v0.21.0-rc.0
+	k8s.io/client-go v0.21.1
+	k8s.io/component-base v0.21.1
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kubectl v0.21.0-beta.1
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10
@@ -74,7 +74,7 @@ replace (
 	// temporary pins to latest commit from soltysh/k8s-1.21 branches
 	github.com/openshift/api => github.com/soltysh/api v0.0.0-20210329125043-97dfec49c179
 	github.com/openshift/client-go => github.com/soltysh/client-go v0.0.0-20210329131047-e53d4b5c79d3
-	github.com/openshift/library-go => github.com/eranco74/library-go 311d3b965a3aaded8b16d9262344e63791c9a5b7
+	github.com/openshift/library-go => github.com/eranco74/library-go v0.0.0-20210601194448-311d3b965a3a
 
 	// temporary pins to latest commit from oc-4.8-kubernetes-1.21.0-beta.1 branches
 	k8s.io/apimachinery => github.com/openshift/kubernetes-apimachinery v0.0.0-20210318140035-c39220d4515a
