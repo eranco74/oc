@@ -161,6 +161,7 @@ func readReleaseImageReferences(regContext *registryclient.Context, data []byte,
 			}
 			newRef.ID = tRef.ID
 			newRef.Tag = tRef.Tag
+			newRef.Name = strings.Replace(newRef.Name, "release-images", "release", 1)
 			is.Spec.Tags[i].From.Name = newRef.String()
 		}
 	}
