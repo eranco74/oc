@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/containers/image/v5/manifest"
 	"io"
 	"sort"
 	"strings"
@@ -160,13 +161,27 @@ func (o *InfoOptions) Run() error {
 						return filtered, nil
 					}
 
-					buf := &bytes.Buffer{}
-					w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
-					fmt.Fprintf(w, "  OS\tDIGEST\n")
+
+					manifests := make(map[string]int)
 					for _, manifest := range list.Manifests {
-						fmt.Fprintf(w, "  %s\t%s\n", imagemanifest.PlatformSpecString(manifest.Platform), manifest.Digest)
+							manifests[imagemanifest.PlatformSpecString(manifest.Platform)] = manifest.Digest
 					}
-					w.Flush()
+					switch o.Output{
+					case "json":
+						data, err := json.MarshalIndent(image, "", "  ")
+						if err != nil {
+							return nil, err
+						}
+						fmt.Fprintf(o.Out, "%s", string(data))
+					default:
+						buf := &bytes.Buffer{}
+						w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
+						fmt.Fprintf(w, "  OS\tDIGEST\n")
+						for platform, digest := range manifests {
+							fmt.Fprintf(w, "  %s\t%s\n", platform), digest)
+						}
+						w.Flush()
+					}
 					return nil, fmt.Errorf("the image is a manifest list and contains multiple images - use --filter-by-os to select from:\n\n%s\n", buf.String())
 				},
 
